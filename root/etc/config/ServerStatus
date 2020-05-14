@@ -1,0 +1,7 @@
+config ServerStatus 'common'
+	option enable '0'
+    option server ''
+    option port ''
+    option name ''
+    option location ''
+    option key ''

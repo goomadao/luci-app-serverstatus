@@ -1,0 +1,52 @@
+#!/bin/sh /etc/rc.common
+START=93
+STOP=17
+
+__LOG_FILE="/var/etc/ServerStatus.log"
+
+log() {
+    lines=$(cat ${__LOG_FILE} | wc -l)
+    if [ $lines -gt 10000 ]; then
+        echo "" >$__LOG_FILE
+    fi
+
+    if [ "$1" ]; then
+        echo -e "[$(date)] - $1" >>$__LOG_FILE
+    else
+        echo -e "" >>$__LOG_FILE
+    fi
+}
+
+start() {
+    if [ ! -x "/usr/bin/serverstatus" ]; then
+        log "No go binary file or the file is not executable."
+    fi
+
+    config_load "ServerStatus"
+    config_get_bool __ENABLE common enable
+
+    [ "$__ENABLE " -gt 0 ] || return 1
+
+    config_get server common server
+    config_get port common port
+    config_get name common name
+    config_get location common location
+    config_get key common key
+
+    SERVICE_DAEMONIZE=1 \
+        service_start /usr/bin/serverstatus -s $server -p $port -n $name -l $location -k $key -L $__LOG_FILE
+
+    [ -z "$(pgrep /usr/bin/serverstatus)" ] && log "start error." && return 1
+
+    log "ServerStatus started."
+
+    return 0
+}
+
+stop() {
+    if [ -n "$(pidof serverstatus)" ]; then
+        service_stop /usr/bin/serverstatus
+        log "ServerStatus stopped."
+    fi
+    return 0
+}
